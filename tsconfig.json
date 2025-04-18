@@ -1,0 +1,27 @@
+{
+  "compilerOptions": {
+    "target": "esnext",
+    "module": "esnext",
+    "moduleResolution": "node",
+    "strict": true,
+    "jsx": "preserve",
+    "sourceMap": true,
+    "resolveJsonModule": true,
+    "esModuleInterop": true,
+    "lib": ["esnext", "dom"],
+    "allowJs": true,
+    "skipLibCheck": true,  // 添加这一行，跳过对库文件的类型检查
+    "noImplicitAny": false,  // 添加这一行，允许隐式的any类型
+    "baseUrl": ".",  // 添加这一行，设置基础路径
+    "paths": {  // 添加这一行，设置路径别名
+      "@/*": ["src/*"]
+    }
+  },
+  "include": [
+    "src/**/*.ts", 
+    "src/**/*.d.ts", 
+    "src/**/*.tsx", 
+    "src/**/*.vue",
+    "src/**/*.js"  // 添加这一行，包含JavaScript文件
+  ]
+}
