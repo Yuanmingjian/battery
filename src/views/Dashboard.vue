@@ -87,7 +87,10 @@
 
                 <td
                   class="px-6 py-4 text-sm font-medium leading-5 text-right border-b border-gray-200 whitespace-nowrap">
-                  <button class="text-indigo-600 hover:text-indigo-900">打印</button>
+                  <div class="flex space-x-2 justify-end">
+                    <button class="text-indigo-600 hover:text-indigo-900">打印</button>
+                    <button @click="handleDelete(b.id)" class="text-red-600 hover:text-red-900">删除</button>
+                  </div>
                 </td>
               </tr>
             </tbody>
@@ -152,10 +155,11 @@
 import { ref, computed, onMounted, watch } from 'vue'
 import VueQrcode from 'vue-qrcode'
 import * as XLSX from 'xlsx'
-import { ElPagination, ElMessage } from 'element-plus'
-import { addBattery as addBatteryApi, getBatteryList, addBatteries } from '../api/api'
+import { ElPagination, ElMessage, ElMessageBox } from 'element-plus'
+import { addBattery as addBatteryApi, getBatteryList, addBatteries, deleteBatteryById } from '../api/api'
 
 interface Battery {
+  id: number
   factoryNumber: string
   productName: string
   productModel: string
@@ -203,14 +207,16 @@ const fetchBatteryList = async () => {
 // 使用测试数据（当API不可用时）
 const useMockData = () => {
   const testBattery: Battery = {
+    id: 0,
     factoryNumber: 'SN123456789',
     productName: '高性能电池',
     productModel: 'Model-X',
     productionDate: '2023-10-01'
   }
 
-  batteries.value = [...Array(16).keys()].map(() => ({
+  batteries.value = [...Array(16).keys()].map((i) => ({
     ...testBattery,
+    id: i + 1,
     factoryNumber: `SN123456789-${Math.floor(Math.random() * 1000)}`
   }))
   total.value = batteries.value.length
@@ -233,6 +239,7 @@ watch([currentPage, pageSize], () => {
 // 添加电池相关的状态和方法
 const showAddModal = ref(false)
 const newBattery = ref<Battery>({
+  id: 0,
   factoryNumber: '',
   productName: '',
   productModel: '',
@@ -245,9 +252,40 @@ const cancelAdd = () => {
   resetNewBattery()
 }
 
+// 处理删除电池
+const handleDelete = (id: number) => {
+  ElMessageBox.confirm('确定要删除这个电池吗？', '提示', {
+    confirmButtonText: '确定',
+    cancelButtonText: '取消',
+    type: 'warning'
+  }).then(async () => {
+    try {
+      loading.value = true
+      const response = await deleteBatteryById(id)
+      
+      if (response.code === 200) {
+        ElMessage.success('删除成功')
+        // 删除后重新获取数据
+        fetchBatteryList()
+      } else {
+        ElMessage.error(response.message || '删除失败')
+      }
+    } catch (error) {
+      console.error('删除电池失败:', error)
+      ElMessage.error('删除失败，请稍后重试')
+    } finally {
+      loading.value = false
+    }
+  }).catch(() => {
+    // 用户取消删除操作
+    ElMessage.info('已取消删除')
+  })
+}
+
 // 重置新电池数据
 const resetNewBattery = () => {
   newBattery.value = {
+    id: 0,
     factoryNumber: '',
     productName: '',
     productModel: '',

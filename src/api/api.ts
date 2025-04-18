@@ -1,5 +1,5 @@
 // API基础URL - 使用相对路径，通过Vite代理转发请求
-const BASE_URL = 'http://123.249.104.94:8878';
+const BASE_URL = '/api';
 
 // 请求方法类型
 type HttpMethod = 'GET' | 'POST' | 'PUT' | 'DELETE';
@@ -125,4 +125,18 @@ export async function getWarrantyClause(): Promise<ApiResponse> {
   return request(`/warrantyclause/get`, {
     method: 'GET',
   });
+}
+
+//通过id删除电池
+export async function deleteBatteryById(id:number): Promise<ApiResponse> {
+  return request(`/battery/delete/${id}`, {
+    method: 'POST',
+  });
+}
+
+//获取所有保修条例表
+export async function getAllWarrantyClause(): Promise<ApiResponse> {
+  return request(`/warrantyterms/list`, {
+    method: 'GET',
+  }); 
 }
