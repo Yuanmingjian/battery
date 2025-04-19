@@ -140,3 +140,11 @@ export async function getAllWarrantyClause(): Promise<ApiResponse> {
     method: 'GET',
   }); 
 }
+
+//添加保修条例
+export async function addWarrantyClause(body:any): Promise<ApiResponse> {
+  return request(`/warrantyterms/add`, {
+    method: 'POST',
+    body
+  });
+}

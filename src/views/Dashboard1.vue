@@ -109,12 +109,7 @@
       />
     </div>
 
-    <div class="mt-8">
-      <label for="fileUpload" class="block text-sm font-medium text-gray-700 font-sans">
-        导入Excel文件
-      </label>
-      <input type="file" @change="handleFileUpload" accept=".xlsx, .xls" class="px-4 py-2 text-sm font-medium leading-5 text-indigo-600 hover:text-indigo-900">
-    </div>
+  
   </div>
 </template>
 
@@ -219,55 +214,6 @@ const exportToPrint = () => {
 
 }
 
-const handleFileUpload = (event: Event) => {
-  const target = event.target as HTMLInputElement;
-  if (target.files && target.files[0]) {
-    const file = target.files[0];
-    const reader = new FileReader();
-    reader.onload = async (e) => {
-      const data = e.target?.result;
-      if (data) {
-        const workbook = XLSX.read(data, { type: 'array' });
-        const firstSheetName = workbook.SheetNames[0];
-        const worksheet = workbook.Sheets[firstSheetName];
-        const jsonData = XLSX.utils.sheet_to_json(worksheet);
-
-        // 将解析后的数据转换为 Battery 类型
-        const parsedBatteries = jsonData.map((item: any) => ({
-          serialNumber: item['出厂编号'] || '',
-          productName: item['产品名称'] || '',
-          productModel: item['产品型号'] || '',
-          productionDate: item['出厂日期'] || '',
-          customerName: item['客户姓名'] || '',
-          contactInfo: item['联系方式'] || '',
-          customerAddress: item['客户地址'] || '',
-          dealerPhone: item['销售商电话'] || ''
-        }));
-
-        try {
-          // 调用批量添加API
-          const response = await addBatteries(parsedBatteries);
-          if (response.code === 200) {
-            ElMessage.success(`成功导入 ${parsedBatteries.length} 条数据`);
-            // 重新获取第一页数据
-            currentPage.value = 1;
-            fetchWarrantyOrderList();
-          } else {
-            ElMessage.error(response.message || '导入数据失败');
-          }
-        } catch (error) {
-          console.error('导入数据失败:', error);
-          ElMessage.error('导入数据失败，请稍后重试');
-          
-          // 如果API不可用，仍然更新本地数据（仅用于演示）
-          batteries.value = parsedBatteries;
-          total.value = batteries.value.length;
-        }
-      }
-    };
-    reader.readAsArrayBuffer(file);
-  }
-}
 
 // 页面加载时获取保修单列表
 onMounted(() => {

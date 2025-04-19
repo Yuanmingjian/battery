@@ -346,12 +346,32 @@ const handleFileUpload = (event: Event) => {
         const jsonData = XLSX.utils.sheet_to_json(worksheet);
 
         // 将解析后的数据转换为 Battery 类型
-        const parsedBatteries = jsonData.map((item: any) => ({
-          factoryNumber: item['出厂编号'] || `SN${Date.now()}-${Math.floor(Math.random() * 1000)}`,
-          productName: item['产品名称'] || '',
-          productModel: item['产品型号'] || '',
-          productionDate: item['出厂日期'] || ''
-        }));
+        const parsedBatteries = jsonData.map((item: any) => {
+          // 处理日期格式
+          let productionDate = item['出厂日期'] || '';
+          
+          // 如果日期是Excel日期数值格式，转换为yyyy-MM-dd格式
+          if (productionDate && typeof productionDate === 'number') {
+            const excelDate = new Date(Math.floor((productionDate - 25569) * 86400 * 1000));
+            productionDate = formatDate(excelDate);
+          } else if (productionDate instanceof Date) {
+            productionDate = formatDate(productionDate);
+          } else if (typeof productionDate === 'string') {
+            // 尝试解析字符串日期并格式化
+            const dateObj = new Date(productionDate);
+            if (!isNaN(dateObj.getTime())) {
+              productionDate = formatDate(dateObj);
+            }
+          }
+          
+          return {
+            factoryNumber: item['出厂编号'] || `SN${Date.now()}-${Math.floor(Math.random() * 1000)}`,
+            productName: item['产品名称'] || '',
+            productModel: item['产品型号'] || '',
+            productionDate: productionDate
+          };
+        });
+        
         //上传到服务器
         console.log(parsedBatteries);
         
@@ -363,12 +383,19 @@ const handleFileUpload = (event: Event) => {
         }
         // 替换现有数据
 
-
         ElMessage.success(`成功导入 ${parsedBatteries.length} 条数据`)
       }
     };
     reader.readAsArrayBuffer(file);
   }
+}
+
+// 格式化日期为yyyy-MM-dd格式
+const formatDate = (date: Date): string => {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
 }
 
 // 页面加载时获取电池列表

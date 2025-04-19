@@ -24,18 +24,36 @@
                   class="px-6 py-3 text-xs font-medium leading-4 tracking-wider text-left text-gray-500 uppercase border-b border-gray-200 bg-gray-50">
                   条例内容
                 </th>
+                <th
+                  class="px-6 py-3 text-xs font-medium leading-4 tracking-wider text-left text-gray-500 uppercase border-b border-gray-200 bg-gray-50">
+                  创建时间
+                </th>
                 <th class="px-6 py-3 border-b border-gray-200 bg-gray-50" />
               </tr>
             </thead>
 
             <tbody class="bg-white">
-              <tr v-for="(regulation, index) in regulations" :key="index">
+              <tr v-if="loading" class="text-center">
+                <td colspan="4" class="px-6 py-4 border-b border-gray-200">
+                  <div class="flex justify-center">
+                    <div class="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-500"></div>
+                  </div>
+                </td>
+              </tr>
+              <tr v-else-if="regulations.length === 0" class="text-center">
+                <td colspan="4" class="px-6 py-4 border-b border-gray-200">暂无数据</td>
+              </tr>
+              <tr v-for="(regulation, index) in regulations" :key="index" v-else>
                 <td class="px-6 py-4 border-b border-gray-200 whitespace-nowrap">
                   {{ regulation.id }}
                 </td>
 
                 <td class="px-6 py-4 border-b border-gray-200">
-                  {{ regulation.content }}
+                  {{ regulation.termContent }}
+                </td>
+
+                <td class="px-6 py-4 border-b border-gray-200 whitespace-nowrap">
+                  {{ regulation.createTime }}
                 </td>
 
                 <td
@@ -55,32 +73,45 @@
       <div class="bg-white p-6 rounded-lg w-1/2">
         <h3 class="text-xl font-medium mb-4">{{ showEditModal ? '编辑条例' : '添加条例' }}</h3>
         
-        <div class="mb-4">
+        <div class="mb-4" v-if="showEditModal">
           <label class="block text-gray-700 text-sm font-bold mb-2" for="id">
-            条例编号 <span class="text-red-500">*</span>
+            条例编号
           </label>
           <input 
             id="id" 
             v-model="currentRegulation.id" 
             class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline" 
             type="text" 
-            placeholder="请输入条例编号"
-            required
+            placeholder="编号由系统自动生成"
+            disabled
           >
         </div>
         
         <div class="mb-4">
-          <label class="block text-gray-700 text-sm font-bold mb-2" for="content">
+          <label class="block text-gray-700 text-sm font-bold mb-2" for="termContent">
             条例内容 <span class="text-red-500">*</span>
           </label>
           <textarea 
-            id="content" 
-            v-model="currentRegulation.content" 
+            id="termContent" 
+            v-model="currentRegulation.termContent" 
             class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline" 
             placeholder="请输入条例内容"
             rows="4"
             required
           ></textarea>
+        </div>
+        
+        <div class="mb-4">
+          <label class="block text-gray-700 text-sm font-bold mb-2" for="createTime">
+            创建时间 <span class="text-red-500">*</span>
+          </label>
+          <input 
+            id="createTime" 
+            v-model="currentRegulation.createTime" 
+            class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline" 
+            type="date" 
+            required
+          >
         </div>
         
         <div class="flex justify-end">
@@ -97,28 +128,21 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, onMounted } from 'vue'
+import { getAllWarrantyClause, addWarrantyClause } from '../api/api'
+import { ElMessage, ElMessageBox } from 'element-plus'
 
 interface Regulation {
   id: string
-  content: string
+  termContent: string
+  createTime?: string
 }
 
-// 示例数据
-const regulations = ref<Regulation[]>([
-  {
-    id: 'REG001',
-    content: '产品自购买之日起享受一年的免费保修服务，电池部分享受六个月的免费保修服务。'
-  },
-  {
-    id: 'REG002',
-    content: '保修期内，因产品本身质量问题引起的故障，请凭保修卡和购机发票到指定维修点享受免费保修服务。'
-  },
-  {
-    id: 'REG003',
-    content: '下列情况不属于免费保修范围：1. 人为损坏；2. 未按产品使用说明书要求使用、维护、保管导致的故障；3. 非授权维修机构拆动造成的损坏。'
-  }
-])
+// 添加loading状态变量
+const loading = ref(false)
+
+// 保修条例数据
+const regulations = ref<Regulation[]>([])
 
 // 控制模态框显示
 const showAddModal = ref(false)
@@ -128,8 +152,29 @@ const editIndex = ref(-1)
 // 当前编辑的条例
 const currentRegulation = ref<Regulation>({
   id: '',
-  content: ''
+  termContent: '',
+  createTime: new Date().toISOString().split('T')[0] // 默认为当前日期
 })
+
+// 获取所有保修条例
+const fetchAllWarrantyClause = async () => {
+  try {
+    loading.value = true
+    const response = await getAllWarrantyClause()
+    
+    if (response.code === 200) {
+      regulations.value = response.data || []
+    } else {
+      ElMessage.error(response.message || '获取保修条例失败')
+      console.error('获取保修条例失败:', response.message)
+    }
+  } catch (error) {
+    console.error('获取保修条例失败:', error)
+    ElMessage.error('获取保修条例失败，请稍后重试')
+  } finally {
+    loading.value = false
+  }
+}
 
 // 编辑条例
 const editRegulation = (index: number) => {
@@ -140,9 +185,16 @@ const editRegulation = (index: number) => {
 
 // 删除条例
 const deleteRegulation = (index: number) => {
-  if (confirm('确定要删除这条保修条例吗？')) {
+  ElMessageBox.confirm('确定要删除这条保修条例吗？', '提示', {
+    confirmButtonText: '确定',
+    cancelButtonText: '取消',
+    type: 'warning'
+  }).then(() => {
     regulations.value.splice(index, 1)
-  }
+    ElMessage.success('删除成功')
+  }).catch(() => {
+    ElMessage.info('已取消删除')
+  })
 }
 
 // 取消编辑
@@ -151,27 +203,57 @@ const cancelEdit = () => {
   showEditModal.value = false
   currentRegulation.value = {
     id: '',
-    content: ''
+    termContent: '',
+    createTime: new Date().toISOString().split('T')[0] // 重置为当前日期
   }
 }
 
 // 保存条例
-const saveRegulation = () => {
+const saveRegulation = async () => {
   // 验证必填字段
-  if (!currentRegulation.value.id || !currentRegulation.value.content) {
-    alert('条例编号和条例内容为必填项！')
+  if (!currentRegulation.value.termContent || !currentRegulation.value.createTime) {
+    ElMessage.warning('条例内容和创建时间为必填项！')
     return
   }
 
-  if (showEditModal.value) {
-    // 更新现有条例
-    regulations.value[editIndex.value] = { ...currentRegulation.value }
-  } else {
-    // 添加新条例
-    regulations.value.push({ ...currentRegulation.value })
+  try {
+    loading.value = true
+    
+    if (showEditModal.value) {
+      // 更新现有条例
+      // 这里应该调用更新API，但目前API中没有提供，暂时只在前端更新
+      regulations.value[editIndex.value] = { ...currentRegulation.value }
+      ElMessage.success('更新条例成功')
+    } else {
+      // 添加新条例 - 不设置id，由后台自动生成
+      const newRegulation = { 
+        termContent: currentRegulation.value.termContent,
+        createTime: currentRegulation.value.createTime
+      }
+      
+      // 调用添加保修条例API
+      const response = await addWarrantyClause(newRegulation)
+      
+      if (response.code === 200) {
+        ElMessage.success('添加条例成功')
+        // 添加成功后重新获取最新列表
+        await fetchAllWarrantyClause()
+      } else {
+        ElMessage.error(response.message || '添加条例失败')
+      }
+    }
+  } catch (error) {
+    console.error('保存条例失败:', error)
+    ElMessage.error('保存条例失败，请稍后重试')
+  } finally {
+    loading.value = false
+    // 关闭模态框并重置表单
+    cancelEdit()
   }
-
-  // 关闭模态框并重置表单
-  cancelEdit()
 }
+
+// 页面加载时获取保修条例
+onMounted(() => {
+  fetchAllWarrantyClause()
+})
 </script>
