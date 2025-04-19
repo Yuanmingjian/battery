@@ -13,7 +13,7 @@
                 <th
                   class="px-6 py-3 text-xs font-medium leading-4 tracking-wider text-left text-gray-500 uppercase border-b border-gray-200 bg-gray-50"
                 >
-                  出厂编号
+                  电池出厂编号
                 </th>
                 <th
                   class="px-6 py-3 text-xs font-medium leading-4 tracking-wider text-left text-gray-500 uppercase border-b border-gray-200 bg-gray-50"
@@ -57,7 +57,7 @@
             <tbody class="bg-white">
               <tr v-for="(b, index) in batteries" :key="index">
                 <td class="px-6 py-4 border-b border-gray-200 whitespace-nowrap">
-                  {{ b.serialNumber }}
+                  {{ b.factoryNumber }}
                 </td>
 
                 <td class="px-6 py-4 border-b border-gray-200 whitespace-nowrap">
@@ -77,7 +77,7 @@
                 </td>
 
                 <td class="px-6 py-4 border-b border-gray-200 whitespace-nowrap">
-                  {{ b.contactInfo }}
+                  {{ b.contactNumber}}
                 </td>
 
                 <td class="px-6 py-4 border-b border-gray-200 whitespace-nowrap">
@@ -85,7 +85,7 @@
                 </td>
 
                 <td class="px-6 py-4 border-b border-gray-200 whitespace-nowrap">
-                  {{ b.dealerPhone }}
+                  {{ b.sellerPhone }}
                 </td>
 
                 <td class="px-6 py-4 text-sm font-medium leading-5 text-right border-b border-gray-200 whitespace-nowrap">
@@ -120,14 +120,14 @@ import { ElPagination, ElMessage } from 'element-plus'
 import { addBattery as addBatteryApi, getBatteryList, addBatteries, getWarrantyOrderList } from '../api/api'
 
 interface Battery {
-  serialNumber: string
+  factoryNumber: string
   productName: string
   productModel: string
   productionDate: string
   customerName: string
-  contactInfo: string
+  contactNumber: string
   customerAddress: string
-  dealerPhone: string
+  sellerPhone: string
 }
 
 // 电池数据列表
@@ -172,23 +172,23 @@ const fetchWarrantyOrderList = async () => {
 // 使用测试数据（当API不可用时）
 const useMockData = () => {
   const testBattery: Battery = {
-    serialNumber: 'SN123456789',
+    factoryNumber: 'SN123456789',
     productName: '高性能电池',
     productModel: 'Model-X',
     productionDate: '2023-10-01',
     customerName: '张三',
-    contactInfo: '13800138000',
+    contactNumber: '13800138000',
     customerAddress: '北京市海淀区中关村',
-    dealerPhone: '13900139000'
+    sellerPhone: '13900139000'
   }
   
   batteries.value = [...Array(10).keys()].map(() => ({
     ...testBattery,
-    serialNumber: `SN123456789-${Math.floor(Math.random() * 1000)}`,
+    factoryNumber: `SN123456789-${Math.floor(Math.random() * 1000)}`,
     customerName: `客户${Math.floor(Math.random() * 100)}`,
-    contactInfo: `13800${Math.floor(Math.random() * 10000)}`,
+    contactNumber: `13800${Math.floor(Math.random() * 10000)}`,
     customerAddress: `地址${Math.floor(Math.random() * 100)}`,
-    dealerPhone: `13900${Math.floor(Math.random() * 10000)}`
+    sellerPhone: `13900${Math.floor(Math.random() * 10000)}`
   }))
   total.value = batteries.value.length
 }

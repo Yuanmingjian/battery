@@ -148,3 +148,10 @@ export async function addWarrantyClause(body:any): Promise<ApiResponse> {
     body
   });
 }
+
+//删除保修条例
+export async function deleteWarrantyClause(id:number): Promise<ApiResponse> {
+  return request(`/warrantyterms/delete/${id}`, {
+    method: 'POST',
+  });
+}

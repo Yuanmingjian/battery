@@ -101,16 +101,16 @@
           ></textarea>
         </div>
         
-        <div class="mb-4">
+        <div class="mb-4" v-if="showEditModal">
           <label class="block text-gray-700 text-sm font-bold mb-2" for="createTime">
-            创建时间 <span class="text-red-500">*</span>
+            创建时间
           </label>
           <input 
             id="createTime" 
             v-model="currentRegulation.createTime" 
             class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline" 
             type="date" 
-            required
+            disabled
           >
         </div>
         
@@ -197,22 +197,11 @@ const deleteRegulation = (index: number) => {
   })
 }
 
-// 取消编辑
-const cancelEdit = () => {
-  showAddModal.value = false
-  showEditModal.value = false
-  currentRegulation.value = {
-    id: '',
-    termContent: '',
-    createTime: new Date().toISOString().split('T')[0] // 重置为当前日期
-  }
-}
-
 // 保存条例
 const saveRegulation = async () => {
   // 验证必填字段
-  if (!currentRegulation.value.termContent || !currentRegulation.value.createTime) {
-    ElMessage.warning('条例内容和创建时间为必填项！')
+  if (!currentRegulation.value.termContent) {
+    ElMessage.warning('条例内容为必填项！')
     return
   }
 
@@ -225,10 +214,9 @@ const saveRegulation = async () => {
       regulations.value[editIndex.value] = { ...currentRegulation.value }
       ElMessage.success('更新条例成功')
     } else {
-      // 添加新条例 - 不设置id，由后台自动生成
+      // 添加新条例 - 只传递内容，id和创建时间由后台自动生成
       const newRegulation = { 
-        termContent: currentRegulation.value.termContent,
-        createTime: currentRegulation.value.createTime
+        termContent: currentRegulation.value.termContent
       }
       
       // 调用添加保修条例API
@@ -249,6 +237,17 @@ const saveRegulation = async () => {
     loading.value = false
     // 关闭模态框并重置表单
     cancelEdit()
+  }
+}
+
+// 取消编辑
+const cancelEdit = () => {
+  showAddModal.value = false
+  showEditModal.value = false
+  currentRegulation.value = {
+    id: '',
+    termContent: '',
+    createTime: new Date().toISOString().split('T')[0] // 仅用于显示
   }
 }
 
