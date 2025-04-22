@@ -3,10 +3,45 @@
 
     <!-- 标题和按钮区域 -->
     <div class="mt-4 flex w-full justify-between items-center">
-      <h3 class="text-3xl font-medium text-gray-700">
-        电池信息表
-      </h3>
+      <div class="flex items-center">
+        <h3 class="text-3xl font-medium text-gray-700">
+          电池信息表
+        </h3>
+        <!-- 添加搜索框 -->
+        <div class="relative mx-4 lg:ml-30 ml-6">
+          <span class="absolute inset-y-0 left-0 flex items-center pl-3">
+            <svg class="w-5 h-5 text-gray-500" viewBox="0 0 24 24" fill="none">
+              <path
+                d="M21 21L15 15M17 10C17 13.866 13.866 17 10 17C6.13401 17 3 13.866 3 10C3 6.13401 6.13401 3 10 3C13.866 3 17 6.13401 17 10Z"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              />
+            </svg>
+          </span>
+
+          <input
+            v-model="searchKey"
+            class="w-32 pl-10 pr-4 text-indigo-600 border-gray-200 rounded-md sm:w-64 focus:border-indigo-600 focus:ring focus:ring-opacity-40 focus:ring-indigo-500"
+            type="text"
+            placeholder="搜索电池信息"
+            @input="handleSearch"
+          >
+        </div>
+      </div>
       <div class="flex space-x-4">
+        <!-- Excel导出模板功能 -->
+        <button @click="exportExcelTemplate"
+          class="px-4 py-2 bg-teal-500 text-white rounded hover:bg-teal-600 flex items-center">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24"
+            stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+              d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+          </svg>
+          导出模板
+        </button>
+        
         <!-- Excel导入功能 -->
         <div class="relative">
           <label for="fileUpload"
@@ -81,7 +116,7 @@
                   {{ b.productionDate }}
                 </td>
 
-                <td class="px-6 py-4 border-b border-gray-200 whitespace-nowrap">
+                <td class=" py-4 border-b border-gray-200 whitespace-nowrap">
                   <vue-qrcode value="https://www.1stg.me" width="100"></vue-qrcode>
                 </td>
 
@@ -170,17 +205,32 @@ interface Battery {
 const batteries = ref<Battery[]>([])
 const loading = ref(false)
 
+// 添加搜索关键字
+const searchKey = ref('')
+
 // 分页相关
 const currentPage = ref(1)
 const pageSize = ref(5)
 const total = ref(0)
 
+// 搜索处理函数
+const handleSearch = () => {
+  currentPage.value = 1 // 重置到第一页
+  fetchBatteryList() // 重新获取数据
+}
+
 // 获取电池列表数据
 const fetchBatteryList = async () => {
   try {
     loading.value = true
-    // 调用API时传递三个分页参数
-    const response = await getBatteryList({ pageNum: currentPage.value, pageSize: pageSize.value })
+    // 调用API时传递分页参数和搜索关键字
+    const response = await getBatteryList({
+      pageParam: {
+        pageNum: currentPage.value,
+        pageSize: pageSize.value
+      },
+      key: searchKey.value
+    })
     if (response.code === 200) {
       // 假设后端返回的数据结构包含 list 和 total
       if (response.data) {
@@ -226,7 +276,7 @@ const useMockData = () => {
 const handlePageChange = (page: number) => {
   currentPage.value = page
   console.log('页码变化:', currentPage.value);
-  
+
   // 页码变化时重新获取数据
   fetchBatteryList()
 }
@@ -262,7 +312,7 @@ const handleDelete = (id: number) => {
     try {
       loading.value = true
       const response = await deleteBatteryById(id)
-      
+
       if (response.code === 200) {
         ElMessage.success('删除成功')
         // 删除后重新获取数据
@@ -349,7 +399,7 @@ const handleFileUpload = (event: Event) => {
         const parsedBatteries = jsonData.map((item: any) => {
           // 处理日期格式
           let productionDate = item['出厂日期'] || '';
-          
+
           // 如果日期是Excel日期数值格式，转换为yyyy-MM-dd格式
           if (productionDate && typeof productionDate === 'number') {
             const excelDate = new Date(Math.floor((productionDate - 25569) * 86400 * 1000));
@@ -363,7 +413,7 @@ const handleFileUpload = (event: Event) => {
               productionDate = formatDate(dateObj);
             }
           }
-          
+
           return {
             factoryNumber: item['出厂编号'] || `SN${Date.now()}-${Math.floor(Math.random() * 1000)}`,
             productName: item['产品名称'] || '',
@@ -371,10 +421,10 @@ const handleFileUpload = (event: Event) => {
             productionDate: productionDate
           };
         });
-        
+
         //上传到服务器
         console.log(parsedBatteries);
-        
+
         const res = await addBatteries(parsedBatteries);
         if (res.code == 200) {
           ElMessage.success(res.message)
@@ -397,6 +447,31 @@ const formatDate = (date: Date): string => {
   const day = String(date.getDate()).padStart(2, '0');
   return `${year}-${month}-${day}`;
 }
+
+// 导出Excel模板功能
+const exportExcelTemplate = () => {
+  // 创建一个新的工作簿
+  const workbook = XLSX.utils.book_new();
+  
+  // 创建表头数据
+  const headers = [['产品名称', '产品型号', '出厂日期']];
+  
+  // 创建工作表
+  const worksheet = XLSX.utils.aoa_to_sheet(headers);
+  
+  // 设置列宽
+  const colWidths = [{ wch: 20 }, { wch: 20 }, { wch: 15 }];
+  worksheet['!cols'] = colWidths;
+  
+  // 将工作表添加到工作簿
+  XLSX.utils.book_append_sheet(workbook, worksheet, '电池信息模板');
+  
+  // 导出Excel文件
+  XLSX.writeFile(workbook, '电池信息导入模板.xlsx');
+  
+  // 提示用户
+  ElMessage.success('模板已导出，请填写后导入');
+};
 
 // 页面加载时获取电池列表
 onMounted(() => {
