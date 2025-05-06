@@ -49,7 +49,7 @@
     <div class="flex flex-col mt-8">
       <div class="py-2 -my-2 overflow-x-auto sm:-mx-6 sm:px-6 lg:-mx-8 lg:px-8">
         <div class="inline-block min-w-full overflow-hidden align-middle border-b border-gray-200 shadow sm:rounded-lg">
-          <table class="min-w-full" id="printTable">
+          <table class="" id="printTable">
             <thead>
               <tr>
                 <th
@@ -92,20 +92,36 @@
                 >
                   销售商电话
                 </th>
+
+                <th
+                  class="px-4 py-3 text-xs font-medium leading-4 tracking-wider text-left text-gray-500 uppercase border-b border-gray-200 bg-gray-50"
+                >
+                   保修年限(年)
+                </th>
+                <th
+                  class="px-4 py-3 text-xs font-medium leading-4 tracking-wider text-left text-gray-500 uppercase border-b border-gray-200 bg-gray-50"
+                >
+                  保修开始日期
+                </th>
+                <th
+                  class="px-4 py-3 text-xs font-medium leading-4 tracking-wider text-left text-gray-500 uppercase border-b border-gray-200 bg-gray-50"
+                >
+                  保修结束日期
+                </th>
                 <th class="px-6 py-3 border-b border-gray-200 bg-gray-50" />
               </tr>
             </thead>
 
             <tbody class="bg-white">
               <tr v-if="loading" class="text-center">
-                <td colspan="9" class="px-6 py-4 border-b border-gray-200">
+                <td colspan="11" class="px-6 py-4 border-b border-gray-200">
                   <div class="flex justify-center">
                     <div class="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-500"></div>
                   </div>
                 </td>
               </tr>
               <tr v-else-if="batteries.length === 0" class="text-center">
-                <td colspan="9" class="px-6 py-4 border-b border-gray-200">暂无数据</td>
+                <td colspan="11" class="px-6 py-4 border-b border-gray-200">暂无数据</td>
               </tr>
               <tr v-for="(b, index) in batteries" :key="index" v-else>
                 <td class="px-6 py-4 border-b border-gray-200 whitespace-nowrap">
@@ -140,9 +156,20 @@
                   {{ b.sellerPhone }}
                 </td>
 
+                <td class="px-6 py-4 border-b border-gray-200 whitespace-nowrap">
+                  {{b.warrantyPeriod}}
+                </td>
+                <td class="px-4 py-4 border-b border-gray-200 whitespace-nowrap">
+                  {{ b.warrantyBegin }}
+                </td>
+
+                <td class="px-4 py-4 border-b border-gray-200 whitespace-nowrap">
+                  {{ b.warrantyEnd }}
+                </td>
+
                 <td class="px-6 py-4 text-sm font-medium leading-5 text-right border-b border-gray-200 whitespace-nowrap">
                   <div class="flex space-x-2 justify-end">
-                    <button @click="exportToPrint" class="text-indigo-600 hover:text-indigo-900">打印</button>
+                    <button @click="handleEdit(b)" class="text-blue-600 hover:text-blue-900">编辑</button>
                     <button @click="handleDelete(b.id!)" class="text-red-600 hover:text-red-900">删除</button>
                   </div>
                 </td>
@@ -167,7 +194,7 @@
     <!-- 添加/编辑保修单的模态框 -->
     <div v-if="showAddModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
       <div class="bg-white p-6 rounded-lg w-1/2">
-        <h3 class="text-xl font-medium mb-4">添加保修单</h3>
+        <h3 class="text-xl font-medium mb-4">{{ isEditMode ? '编辑保修单' : '添加保修单' }}</h3>
         
         <div class="mb-4">
           <label class="block text-gray-700 text-sm font-bold mb-2" for="factoryNumber">
@@ -287,6 +314,8 @@
           >
         </div>
         
+       
+        
         <div class="flex justify-end">
           <button @click="cancelAdd" class="bg-gray-300 hover:bg-gray-400 text-gray-800 font-bold py-2 px-4 rounded mr-2">
             取消
@@ -305,7 +334,7 @@
 import { ref, onMounted, watch } from 'vue'
 import * as XLSX from 'xlsx'
 import { ElPagination, ElMessage, ElMessageBox } from 'element-plus'
-import { addBattery as addBatteryApi, getBatteryList, addBatteries, getWarrantyOrderList, deleteWarrantyOrder,addWarrantyOrder } from '../api/api'
+import { addBattery as addBatteryApi, getBatteryList, addBatteries, getWarrantyOrderList, deleteWarrantyOrder, addWarrantyOrder, updateWarrantyOrder } from '../api/api'
 
 interface Battery {
   id?: number
@@ -317,6 +346,9 @@ interface Battery {
   contactNumber: string
   customerAddress: string
   sellerPhone: string
+  warrantyBegin?: string
+  warrantyEnd?: string
+  warrantyPeriod?: string
 }
 
 // 电池数据列表
@@ -331,6 +363,9 @@ const allBatteryData = ref<any[]>([])
 
 // 添加搜索关键字
 const searchKey = ref('')
+
+// 是否为编辑模式
+const isEditMode = ref(false)
 
 // 分页相关
 const currentPage = ref(1)
@@ -390,7 +425,9 @@ const useMockData = () => {
     customerName: '张三',
     contactNumber: '13800138000',
     customerAddress: '北京市海淀区中关村',
-    sellerPhone: '13900139000'
+    sellerPhone: '13900139000',
+    warrantyBegin: '2023-10-01',
+    warrantyEnd: '2024-10-01'
   }
   
   batteries.value = [...Array(10).keys()].map(() => ({
@@ -456,7 +493,9 @@ const exportToExcel = async () => {
         '客户姓名': item.customerName,
         '联系方式': item.contactNumber,
         '客户地址': item.customerAddress,
-        '销售商电话': item.sellerPhone
+        '销售商电话': item.sellerPhone,
+        '保修开始日期': item.warrantyBegin,
+        '保修结束日期': item.warrantyEnd
       }))
       
       // 创建工作簿
@@ -592,13 +631,25 @@ const newWarranty = ref<Battery>({
   customerName: '',
   contactNumber: '',
   customerAddress: '',
-  sellerPhone: ''
+  sellerPhone: '',
+  warrantyBegin: '',
+  warrantyEnd: ''
 })
 
-// 取消添加保修单
+// 取消添加或编辑保修单
 const cancelAdd = () => {
   showAddModal.value = false
+  isEditMode.value = false
   resetNewWarranty()
+}
+
+// 处理编辑操作
+const handleEdit = (battery: Battery) => {
+  isEditMode.value = true
+  // 复制电池数据到表单
+  newWarranty.value = { ...battery }
+  // 显示模态框
+  showAddModal.value = true
 }
 
 // 当选择电池出厂编号时，自动填充产品名称和型号
@@ -607,6 +658,7 @@ const handleFactoryNumberChange = () => {
   if (selectedBattery) {
     newWarranty.value.productName = selectedBattery.productName
     newWarranty.value.productModel = selectedBattery.productModel
+    newWarranty.value.productionDate = selectedBattery.productionDate
   }
 }
 
@@ -620,11 +672,13 @@ const resetNewWarranty = () => {
     customerName: '',
     contactNumber: '',
     customerAddress: '',
-    sellerPhone: ''
+    sellerPhone: '',
+    warrantyBegin: '',
+    warrantyEnd: ''
   }
 }
 
-// 添加新保修订单
+// 添加或更新保修单
 const addNewWarrantyOrder = async () => {
   // 验证必填字段
   if (!newWarranty.value.factoryNumber || 
@@ -634,18 +688,25 @@ const addNewWarrantyOrder = async () => {
       !newWarranty.value.customerName ||
       !newWarranty.value.contactNumber ||
       !newWarranty.value.customerAddress ||
-      !newWarranty.value.sellerPhone) {
+      !newWarranty.value.sellerPhone 
+      ) {
     ElMessage.warning('所有字段均为必填项！')
     return
   }
 
   try {
     loading.value = true
-    // 调用添加保修单API
-    const response = await addWarrantyOrder(newWarranty.value)
+    let response
+    if (isEditMode.value) {
+      // 调用API更新保修单
+      response = await updateWarrantyOrder(newWarranty.value)
+    } else {
+      // 调用API添加保修单
+      response = await addWarrantyOrder(newWarranty.value)
+    }
     
     if (response.code === 200) {
-      ElMessage.success('添加保修单成功')
+      ElMessage.success(isEditMode.value ? '更新保修单成功' : '添加保修单成功')
 
       // 关闭模态框并重置表单
       showAddModal.value = false
@@ -655,11 +716,11 @@ const addNewWarrantyOrder = async () => {
       currentPage.value = 1
       await fetchWarrantyOrderList()
     } else {
-      ElMessage.error(response.message || '添加保修单失败')
+      ElMessage.error(response.message || (isEditMode.value ? '更新保修单失败' : '添加保修单失败'))
     }
   } catch (error) {
-    console.error('添加保修单失败:', error)
-    ElMessage.error('添加保修单失败，请稍后重试')
+    console.error(isEditMode.value ? '更新保修单失败:' : '添加保修单失败:', error)
+    ElMessage.error(isEditMode.value ? '更新保修单失败，请稍后重试' : '添加保修单失败，请稍后重试')
   } finally {
     loading.value = false
   }

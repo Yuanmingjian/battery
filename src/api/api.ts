@@ -1,5 +1,5 @@
 // API基础URL - 使用相对路径，通过Vite代理转发请求
-const BASE_URL = 'http://123.249.104.94:8878';
+const BASE_URL = 'https://ldlyj.cn:8878';
 
 // 请求方法类型
 type HttpMethod = 'GET' | 'POST' | 'PUT' | 'DELETE';
@@ -90,14 +90,38 @@ export async function addBattery(batteryData: any): Promise<ApiResponse> {
   });
 }
 
-// 批量添加电池接口
-export async function addBatteries(batteryDatas: any): Promise<ApiResponse> {
-  return request('/battery/batchAdd', {
+/**
+ * 更新电池接口
+ * @param batteryData 电池数据
+ * @returns Promise<ApiResponse>
+ */
+export async function updateBattery(batteryData: any): Promise<ApiResponse> {
+  return request('/battery/update', {
     method: 'POST',
-    body: batteryDatas
+    body: batteryData
   });
 }
 
+
+
+// 批量添加电池接口
+export async function addBatteries(batteryData: any): Promise<ApiResponse> {
+  return request('/battery/batchAdd', {
+    method: 'POST',
+    body: batteryData
+  });
+}
+
+// 批量添加相同的电池接口
+export async function addSameBatteries(count:number,batteryData:any): Promise<ApiResponse> {
+  return request('/battery/batchAddSameBattery', {
+    method: 'POST',
+    body: {
+      count,
+      ...batteryData
+    }
+  });
+}
 
 /**
  * 获取电池列表接口
@@ -148,10 +172,26 @@ export async function addWarrantyClause(body:any): Promise<ApiResponse> {
     body
   });
 }
+//更新保修条例
+export async function updateWarrantyClause(body:any): Promise<ApiResponse> {
+  return request(`/warrantyterms/update`, {
+    method: 'POST',
+    body
+  });
+}
+
 
 //添加保修单信息 
 export async function addWarrantyOrder(body:any): Promise<ApiResponse> {
   return request(`/warrantyorder/add`, {
+    method: 'POST',
+    body
+  });
+}
+
+//更新保修单信息
+export async function updateWarrantyOrder(body:any): Promise<ApiResponse> {
+  return request(`/warrantyorder/update`, {
     method: 'POST',
     body
   });
